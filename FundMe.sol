@@ -11,7 +11,13 @@ contract FundME {
     address[] public funders;
     mapping(address => uint) public addressToAmountFunded;
 
-    // This function lets send fund 
+address public owner;
+
+    constructor(){
+        owner = msg.sender;
+    }
+
+    // This function lets send funds 
     function fund() public payable {
         // Setting a minimum amount of ether to be sent
         require (msg.value.conversionRate() >= minimumUSD, "Didn't send enough ether");
@@ -19,9 +25,23 @@ contract FundME {
         addressToAmountFunded[msg.sender] = msg.value;
     }
 
-    
-
     // This function lets owner of the contract to withdraw the funds
-    // function withdrawFund() {}
+    function withdrawFund() public onlyOwner {
+        for(uint funderIndex = 0; funderIndex < funders.length; funderIndex++){
+            address funder = funders[funderIndex];
+            addressToAmountFunded[funder] = 0;
+        }
 
+        // Resetting the array
+        funders = new address[] (0);
+
+        // Withdrawing funds from the contracts
+        (bool callSuccess, ) = payable(msg.sender).call{value: address(this).balance}("");
+        require(callSuccess, "Call failed");
+    }
+
+    modifier onlyOwner {
+        require(msg.sender == owner, "Sender is not owner");
+        _;
+    }
 }
